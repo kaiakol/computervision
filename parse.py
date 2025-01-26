@@ -4,7 +4,7 @@ import numpy as np
 import os
 import cv2
 import mediapipe as mp
-from pose import Pose, PoseSequence
+from pose import PoseSequence
 
 # Initialize Mediapipe Pose
 mp_pose = mp.solutions.pose
