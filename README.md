@@ -1,28 +1,14 @@
-# human-pose-estimation-opencv
-Perform Human Pose Estimation in OpenCV Using OpenPose MobileNet
+## Pose Trainer with MediaPipe
 
-![OpenCV Using OpenPose MobileNet](output.JPG)
+The purpose of this application is to be able to use a keypoint detection model such as MediaPipe for exercise form correction and repetition counting. 
 
+The model uses both a heuristic evaluation method and a machine learning model to give feedback on whether an exercise was performed with correct form or not, and give feedback on how the user can improve their form.
 
-# How to use
+Process videos:
+python main.py --mode batch_process --input_folder videos --output_folder poses_compressed
 
-- Test with webcam
+Evaluate a video:
+python main.py --mode evaluate --video videos/pushup.mp4 --exercise pushup
 
-```
-python openpose.py
-```
-
-- Test with image
-```
-python openpose.py --input image.jpg
-```
-
-- Use `--thr` to increase confidence threshold
-
-```
-python openpose.py --input image.jpg --thr 0.5
-```
-
-# Notes:
-- I modified the [OpenCV DNN Example](https://github.com/opencv/opencv/blob/master/samples/dnn/openpose.py) to use the `Tensorflow MobileNet Model`, which is provided by [ildoonet/tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation/tree/master/models/graph/mobilenet_thin), instead of `Caffe Model` from CMU OpenPose. The original `openpose.py` from `OpenCV example` only uses `Caffe Model` which is more than 200MB while the `Mobilenet` is only 7MB.
-- Basically, we need to change the `cv.dnn.blobFromImage` and use `out = out[:, :19, :, :]` to get only the first 19 rows in the `out` variable.
+Evaluate preprocessed keypoints:
+python main.py --mode evaluate --video videos/pushup.mp4 --exercise pushup
