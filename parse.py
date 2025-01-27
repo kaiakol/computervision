@@ -1,14 +1,9 @@
 import argparse
-import glob
 import numpy as np
 import os
 import cv2
 import mediapipe as mp
 from pose import PoseSequence
-
-# Initialize Mediapipe Pose
-mp_pose = mp.solutions.pose
-pose_estimator = mp_pose.Pose()
 
 def parse_video(video_path, output_folder):
     """
@@ -24,12 +19,16 @@ def parse_video(video_path, output_folder):
     cap = cv2.VideoCapture(video_path)
     keypoints_sequence = []
 
+    # Initialize Mediapipe Pose
+    mp_pose = mp.solutions.pose
+    pose_estimator = mp_pose.Pose()
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Convert frame to RGB for Mediapipe
+        # Convert frame to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose_estimator.process(frame_rgb)
 
@@ -42,14 +41,12 @@ def parse_video(video_path, output_folder):
             ])
             keypoints_sequence.append(keypoints)
         else:
-            # Append zeros for missing frames
-            keypoints_sequence.append(np.zeros((33, 3)))  # Mediapipe has 33 keypoints
+            keypoints_sequence.append(np.zeros((33, 3)))
 
     cap.release()
 
     keypoints_sequence = np.array(keypoints_sequence)
 
-    # Save the keypoints
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     output_dir = os.path.join(output_folder, video_name)
     os.makedirs(output_folder, exist_ok=True)
@@ -71,7 +68,7 @@ def process_video_dataset(input_folder, output_folder):
         print(f"Processing: {video_path}")
         parse_video(video_path, output_folder)
 
-def load_ps(filename):
+def load_posesequence(filename):
     """
     Load a PoseSequence object from a .npy file.
     """
@@ -84,12 +81,10 @@ def main():
     Main function to parse videos in a folder and save their pose keypoints as .npy files.
     """
     parser = argparse.ArgumentParser(description='Pose Trainer Parser with Mediapipe')
-    parser.add_argument('--input_folder', type=str, default='videos', help='Input folder containing video files')
-    parser.add_argument('--output_folder', type=str, default='poses_compressed', help='Output folder for npy files')
+    parser.add_argument('--input_folder', type=str, help='Input folder containing video files')
+    parser.add_argument('--output_folder', type=str, help='Output folder for npy files')
 
     args = parser.parse_args()
-
-    # Process videos in the input folder and save results to the output folder
     process_video_dataset(args.input_folder, args.output_folder)
 
 if __name__ == '__main__':

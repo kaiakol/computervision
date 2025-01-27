@@ -2,6 +2,7 @@ import os
 import numpy as np
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
+import json
 
 def evaluate_pose(pose_seq, exercise_type, training_data):
     """
@@ -10,7 +11,7 @@ def evaluate_pose(pose_seq, exercise_type, training_data):
 
     Args:
         pose_seq (PoseSequence): The pose sequence to evaluate.
-        exercise_type (str): Type of exercise (e.g., 'pushup').
+        exercise_type (str): Type of exercise.
         training_data (dict): Dictionary containing training pose sequences for each exercise type.
 
     Returns:
@@ -25,27 +26,44 @@ def evaluate_pose(pose_seq, exercise_type, training_data):
     feedback.extend(geometric_feedback)
 
     # Machine learning evaluation
-    if exercise_type not in training_data:
-        feedback.append(f"No training data available for exercise: {exercise_type}")
-        return False, feedback
-
-    ml_correct, ml_feedback = ml_evaluation(pose_seq, training_data[exercise_type], k=3)
-    feedback.extend(ml_feedback)
+    knn_correct, knn_feedback = knn_evaluation(pose_seq, exercise_type, training_data, k=3)
+    feedback.extend(knn_feedback)
 
     # Combine geometric and ML evaluations, both must be correct
-    overall_correct = geometric_correct and ml_correct
+    overall_correct = geometric_correct and knn_correct
     if overall_correct:
         return True, ["Exercise performed correctly!"]
     return False, feedback
 
-
-def geometric_evaluation(pose_seq, exercise_type):
+def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     """
     Perform geometric evaluation based on joint angles and exercise-specific rules.
 
     Args:
         pose_seq (PoseSequence): The pose sequence to evaluate.
         exercise_type (str): Type of exercise (e.g., 'pushup', 'squat').
+        base_dir (str): Base directory containing exercise folders.
+
+    Returns:
+        (bool, list): A tuple where the first element indicates correctness,
+                      and the second element contains feedback.
+    """
+    try:
+        rules = load_exercise_rules(exercise_type, base_dir)
+        validate_exercise_rules(rules)
+    except (FileNotFoundError, ValueError) as e:
+        return (False, [str(e)])
+
+    return evaluate_exercise(pose_seq, rules)
+
+
+def evaluate_exercise(pose_seq, rules):
+    """
+    Evaluate a PoseSequence using the provided rules.
+
+    Args:
+        pose_seq (PoseSequence): The pose sequence to evaluate.
+        rules (dict): The rules loaded from JSON.
 
     Returns:
         (bool, list): A tuple where the first element indicates correctness,
@@ -54,35 +72,74 @@ def geometric_evaluation(pose_seq, exercise_type):
     feedback = []
     correct = True
 
-    if exercise_type == "pushup":
-        # Forslag fra chatGPT
-        for pose in pose_seq.poses:
-            upper_arm = np.array([pose.rshoulder.x, pose.rshoulder.y]) - np.array([pose.relbow.x, pose.relbow.y])
-            forearm = np.array([pose.relbow.x, pose.relbow.y]) - np.array([pose.rwrist.x, pose.rwrist.y])
-            angle = np.degrees(np.arccos(np.dot(upper_arm, forearm) / (np.linalg.norm(upper_arm) * np.linalg.norm(forearm))))
+    for angle_rule in rules["angle_rules"]:
+        joints = angle_rule["joints"]
+        min_angle = angle_rule.get("min_angle")
+        max_angle = angle_rule.get("max_angle")
+        feedback_msg = angle_rule["feedback"]
 
-            if angle > 70:
-                correct = False
-                feedback.append("Incomplete pushup: Fully extend your arms.")
+        angles = compute_joint_angles(pose_seq, joints)
 
-    elif exercise_type == "squat":
-        # Forslag fra chatGPT
-        for pose in pose_seq.poses:
-            hip_height = pose.rhip.y
-            knee_height = pose.rknee.y
-            ankle_height = pose.rankle.y
+        # Check angle constraints
+        if min_angle is not None and any(angle < min_angle for angle in angles):
+            correct = False
+            feedback.append(feedback_msg)
 
-            if hip_height > knee_height or hip_height - ankle_height > 0.4:
-                correct = False
-                feedback.append("Incomplete squat: Lower your hips below your knees.")
+        if max_angle is not None and any(angle > max_angle for angle in angles):
+            correct = False
+            feedback.append(feedback_msg)
 
-    else:
-        feedback.append(f"Geometric rules for {exercise_type} are not implemented.")
+    if correct:
+        feedback.append("Exercise performed correctly!")
 
     return correct, feedback
 
+import numpy as np
 
-def ml_evaluation(pose_seq, training_data, k=3):
+def compute_joint_angles(pose_seq, joints):
+    """
+    Compute angles between joints in a PoseSequence.
+
+    Args:
+        pose_seq (PoseSequence): The sequence of poses to evaluate.
+        joints (list): A list of joint names that define the angle (e.g., ["lshoulder", "lelbow", "lwrist"]).
+
+    Returns:
+        list: A list of angles (in degrees) for each pose in the sequence.
+    """
+    if len(joints) != 3:
+        raise ValueError("Exactly 3 joints must be provided to compute an angle.")
+
+    joint1, joint2, joint3 = joints
+    angles = []
+
+    for pose in pose_seq.poses:
+        # Get the joint positions
+        part1 = getattr(pose, joint1)
+        part2 = getattr(pose, joint2)
+        part3 = getattr(pose, joint3)
+
+        # Ensure all joints exist in the current pose
+        if not (part1.exists and part2.exists and part3.exists):
+            continue
+
+        # Compute vectors
+        vec1 = np.array([part1.x - part2.x, part1.y - part2.y])
+        vec2 = np.array([part3.x - part2.x, part3.y - part2.y])
+
+        # Normalize vectors
+        vec1_norm = vec1 / np.linalg.norm(vec1)
+        vec2_norm = vec2 / np.linalg.norm(vec2)
+
+        # Compute angle between vectors using dot product
+        dot_product = np.dot(vec1_norm, vec2_norm)
+        angle = np.degrees(np.arccos(np.clip(dot_product, -1.0, 1.0)))
+
+        angles.append(angle)
+
+    return angles
+
+def knn_evaluation(pose_seq, exercise_type, training_data, k=3):
     """
     Perform machine learning evaluation using a DTW-based nearest neighbor classifier.
 
@@ -95,7 +152,10 @@ def ml_evaluation(pose_seq, training_data, k=3):
         (bool, list): A tuple where the first element indicates correctness,
                       and the second element contains feedback.
     """
-    feedback = []
+
+    if exercise_type not in training_data:
+        feedback = "No training data available for exercise: {exercise_type}"
+        return False, feedback
 
     # Flatten the input pose sequence into a 2D array (frames x features)
     input_sequence = np.array([[part.x, part.y] for pose in pose_seq.poses for _, part in pose if part.exists])
@@ -122,7 +182,62 @@ def ml_evaluation(pose_seq, training_data, k=3):
     predicted_label = max(label_counts, key=label_counts.get)
 
     if predicted_label == "incorrect":
-        feedback.append("Machine learning evaluation suggests the form needs improvement.")
+        feedback = "Incorrect form detected."
         return False, feedback
 
+    feedback = "Correct form detected."
     return True, feedback
+
+
+def load_exercise_rules(exercise_type, base_dir="data"):
+    """
+    Load exercise-specific rules from a JSON file in the exercise folder.
+
+    Args:
+        exercise_type (str): The name of the exercise (e.g., 'pushup').
+        base_dir (str): The base directory containing exercise folders.
+
+    Returns:
+        dict: The rules dictionary for the exercise.
+
+    Raises:
+        FileNotFoundError: If the rules file is not found.
+        ValueError: If the JSON file is invalid or improperly formatted.
+    """
+    file_path = os.path.join(base_dir, exercise_type, "rules.json")
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Rules file not found for exercise '{exercise_type}' at {file_path}.")
+    
+    try:
+        with open(file_path, "r") as f:
+            rules = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse rules.json for '{exercise_type}': {str(e)}")
+    
+    return rules
+
+def validate_exercise_rules(rules):
+    """
+    Validate the structure of the exercise rules JSON.
+
+    Args:
+        rules (dict): The rules dictionary.
+
+    Raises:
+        ValueError: If the rules dictionary is invalid.
+    """
+    required_keys = ["keypoints", "angle_rules"]
+
+    for key in required_keys:
+        if key not in rules:
+            raise ValueError(f"Missing required key '{key}' in rules.")
+
+    if not isinstance(rules["keypoints"], list):
+        raise ValueError("'keypoints' should be a list.")
+
+    if not isinstance(rules["angle_rules"], list):
+        raise ValueError("'angle_rules' should be a list.")
+
+    for angle_rule in rules["angle_rules"]:
+        if not all(k in angle_rule for k in ["joints", "min_angle", "max_angle", "feedback"]):
+            raise ValueError("Each angle rule must contain 'joints', 'min_angle', 'max_angle', and 'feedback'.")

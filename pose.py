@@ -8,13 +8,13 @@ class PoseSequence:
         for parts in sequence:
             self.poses.append(Pose(parts))
 
-        # Normalize poses based on the average torso pixel length
+        # Normalize poses based on the average torso length
         torso_lengths = []
         for pose in self.poses:
-            if pose.neck.exists and pose.lhip.exists:
-                torso_lengths.append(Part.dist(pose.neck, pose.lhip))
-            if pose.neck.exists and pose.rhip.exists:
-                torso_lengths.append(Part.dist(pose.neck, pose.rhip))
+            midpoint_shoulder = (pose.lshoulder + pose.rshoulder) / 2
+            midpoint_hip = (pose.lhip + pose.rhip) / 2
+            mean_torso = Part.dist(midpoint_shoulder, midpoint_hip)
+            torso_lengths.append(mean_torso)
         
         mean_torso = np.mean(torso_lengths) if torso_lengths else 1.0
 
@@ -24,9 +24,9 @@ class PoseSequence:
 
 class Pose:
     PART_NAMES = [
-        "nose", "neck", "rshoulder", "relbow", "rwrist",
-        "lshoulder", "lelbow", "lwrist", "rhip", "rknee", "rankle",
-        "lhip", "lknee", "lankle", "reye", "leye", "rear", "lear"
+        "nose", "lshoulder", "rshoulder", "lelbow", "relbow", "lwrist", "rwrist",
+        "lhip", "rhip", "lknee", "rknee", "lankle", "rankle", "lheel", "rheel",
+        "lfootindex", "rfootindex"
     ]
 
     def __init__(self, parts):
@@ -60,6 +60,11 @@ class Part:
         self.c = vals[2]
         self.exists = self.c > 0.0
 
+    def __add__(self, other):
+        if not (self.exists and other.exists):
+            return Part([0, 0, 0])  # Return a "nonexistent" Part if either doesn't exist
+        return Part([self.x + other.x, self.y + other.y, min(self.c, other.c)])  # Combine confidences conservatively
+
     def __floordiv__(self, scalar):
         return self.__truediv__(scalar)
 
@@ -88,46 +93,22 @@ def process_mediapipe_results(results):
         [landmarks[i].x, landmarks[i].y, landmarks[i].visibility]
         for i in [
             mp_pose.PoseLandmark.NOSE.value,
-            mp_pose.PoseLandmark.LEFT_SHOULDER.value,  # Neck approximation
-            mp_pose.PoseLandmark.RIGHT_SHOULDER.value,
-            mp_pose.PoseLandmark.RIGHT_ELBOW.value,
-            mp_pose.PoseLandmark.RIGHT_WRIST.value,
             mp_pose.PoseLandmark.LEFT_SHOULDER.value,
+            mp_pose.PoseLandmark.RIGHT_SHOULDER.value,
             mp_pose.PoseLandmark.LEFT_ELBOW.value,
+            mp_pose.PoseLandmark.RIGHT_ELBOW.value,
             mp_pose.PoseLandmark.LEFT_WRIST.value,
-            mp_pose.PoseLandmark.RIGHT_HIP.value,
-            mp_pose.PoseLandmark.RIGHT_KNEE.value,
-            mp_pose.PoseLandmark.RIGHT_ANKLE.value,
+            mp_pose.PoseLandmark.RIGHT_WRIST.value,
             mp_pose.PoseLandmark.LEFT_HIP.value,
+            mp_pose.PoseLandmark.RIGHT_HIP.value,
             mp_pose.PoseLandmark.LEFT_KNEE.value,
+            mp_pose.PoseLandmark.RIGHT_KNEE.value,
             mp_pose.PoseLandmark.LEFT_ANKLE.value,
-            mp_pose.PoseLandmark.RIGHT_EYE.value,
-            mp_pose.PoseLandmark.LEFT_EYE.value,
-            mp_pose.PoseLandmark.RIGHT_EAR.value,
-            mp_pose.PoseLandmark.LEFT_EAR.value,
+            mp_pose.PoseLandmark.RIGHT_ANKLE.value,
+            mp_pose.PoseLandmark.LEFT_HEEL.value,
+            mp_pose.PoseLandmark.RIGHT_HEEL.value,
+            mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value,
+            mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value
         ]
     ]
     return keypoints
-
-
-# Example: Process a video frame
-def process_video(video_path):
-    cap = cv2.VideoCapture(video_path)
-    sequences = []
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Convert to RGB as required by Mediapipe
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose_estimator.process(frame_rgb)
-
-        # Convert Mediapipe results to PoseSequence format
-        keypoints = process_mediapipe_results(results)
-        if keypoints:
-            sequences.append(keypoints)
-
-    cap.release()
-    return PoseSequence(sequences)
