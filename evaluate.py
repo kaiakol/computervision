@@ -4,6 +4,8 @@ from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 import json
 
+from parse import load_posesequence
+
 def evaluate_pose(pose_seq, exercise_type, training_data):
     """
     Evaluate a pose sequence for correctness using both geometric heuristics
@@ -12,29 +14,22 @@ def evaluate_pose(pose_seq, exercise_type, training_data):
     Args:
         pose_seq (PoseSequence): The pose sequence to evaluate.
         exercise_type (str): Type of exercise.
-        training_data (dict): Dictionary containing training pose sequences for each exercise type.
-
-    Returns:
-        (bool, list): A tuple where the first element indicates if the exercise
-                      is performed correctly overall, and the second element
-                      contains a list of feedback from geometric and ML evaluations.
+        training_data (dict): Dictionary containing "correct" and "incorrect" training sequences.
     """
-    feedback = []
-
     # Geometric evaluation
     geometric_correct, geometric_feedback = geometric_evaluation(pose_seq, exercise_type)
-    feedback.extend(geometric_feedback)
+    if geometric_correct:
+        print("Geometric evaluation passed")
+    else: 
+        print(f"Geometric evaluation failed: {geometric_feedback}")
 
     # Machine learning evaluation
-    knn_correct, knn_feedback = knn_evaluation(pose_seq, exercise_type, training_data, k=3)
-    feedback.extend(knn_feedback)
-
-    # Combine geometric and ML evaluations, both must be correct
-    overall_correct = geometric_correct and knn_correct
-    if overall_correct:
-        return True, ["Exercise performed correctly!"]
-    return False, feedback
-
+    knn_correct =  knn_evaluation(pose_seq, exercise_type, training_data, k=3)
+    if knn_correct:
+        print("KNN evaluation passed")
+    else:
+        print(f"KNN evaluation failed")
+    
 def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     """
     Perform geometric evaluation based on joint angles and exercise-specific rules.
@@ -52,18 +47,32 @@ def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
         rules = load_exercise_rules(exercise_type, base_dir)
         validate_exercise_rules(rules)
     except (FileNotFoundError, ValueError) as e:
-        return (False, [str(e)])
+        return False, [str(e)]
 
-    return evaluate_exercise(pose_seq, rules)
+    # Detect perspective and normalize if necessary
+    perspective = pose_seq.perspective
+    if perspective == "left":
+        pose_seq.normalize_perspective()  # Normalize to the right-side view
 
+    # Compute joint angle statistics for all relevant joints
+    for angle_rule in rules["angle_rules"]:
+        # Use side-specific joint names based on perspective
+        joints = angle_rule["sides"][perspective] if perspective in ["left", "right"] else angle_rule["joints"]
 
-def evaluate_exercise(pose_seq, rules):
+        if joints:
+            pose_seq.compute_joint_angle_statistics(joints)
+
+    # Evaluate the exercise using the provided rules
+    return evaluate_exercise(pose_seq, rules, perspective)
+
+def evaluate_exercise(pose_seq, rules, perspective):
     """
-    Evaluate a PoseSequence using the provided rules.
+    Evaluate a PoseSequence using the provided rules and perspective.
 
     Args:
         pose_seq (PoseSequence): The pose sequence to evaluate.
         rules (dict): The rules loaded from JSON.
+        perspective (str): Detected perspective ("left", "right", "front").
 
     Returns:
         (bool, list): A tuple where the first element indicates correctness,
@@ -73,71 +82,41 @@ def evaluate_exercise(pose_seq, rules):
     correct = True
 
     for angle_rule in rules["angle_rules"]:
-        joints = angle_rule["joints"]
+        joints_left = angle_rule["sides"]["left"]
+        joints_right = angle_rule["sides"]["right"]
         min_angle = angle_rule.get("min_angle")
         max_angle = angle_rule.get("max_angle")
         feedback_msg = angle_rule["feedback"]
 
-        angles = compute_joint_angles(pose_seq, joints)
+        # Evaluate based on perspective
+        if perspective in ["left", "right"]:
+            joints = angle_rule["sides"][perspective]
+            min_joint_angle = pose_seq.min_angles.get(tuple(joints))
+            max_joint_angle = pose_seq.max_angles.get(tuple(joints))
 
-        # Check angle constraints
-        if min_angle is not None and any(angle < min_angle for angle in angles):
-            correct = False
-            feedback.append(feedback_msg)
+            if min_angle is not None and min_joint_angle is not None and min_joint_angle < min_angle:
+                correct = False
+                feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected: ≥{min_angle}°)")
 
-        if max_angle is not None and any(angle > max_angle for angle in angles):
-            correct = False
-            feedback.append(feedback_msg)
+            if max_angle is not None and max_joint_angle is not None and max_joint_angle > max_angle:
+                correct = False
+                feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected: ≤{max_angle}°)")
 
-    if correct:
-        feedback.append("Exercise performed correctly!")
+        elif perspective == "front":
+            # Evaluate both left and right sides
+            for joints in [joints_left, joints_right]:
+                min_joint_angle = pose_seq.min_angles.get(tuple(joints))
+                max_joint_angle = pose_seq.max_angles.get(tuple(joints))
+
+                if min_angle is not None and min_joint_angle is not None and min_joint_angle < min_angle:
+                    correct = False
+                    feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected: ≥{min_angle}°)")
+
+                if max_angle is not None and max_joint_angle is not None and max_joint_angle > max_angle:
+                    correct = False
+                    feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected: ≤{max_angle}°)")
 
     return correct, feedback
-
-import numpy as np
-
-def compute_joint_angles(pose_seq, joints):
-    """
-    Compute angles between joints in a PoseSequence.
-
-    Args:
-        pose_seq (PoseSequence): The sequence of poses to evaluate.
-        joints (list): A list of joint names that define the angle (e.g., ["lshoulder", "lelbow", "lwrist"]).
-
-    Returns:
-        list: A list of angles (in degrees) for each pose in the sequence.
-    """
-    if len(joints) != 3:
-        raise ValueError("Exactly 3 joints must be provided to compute an angle.")
-
-    joint1, joint2, joint3 = joints
-    angles = []
-
-    for pose in pose_seq.poses:
-        # Get the joint positions
-        part1 = getattr(pose, joint1)
-        part2 = getattr(pose, joint2)
-        part3 = getattr(pose, joint3)
-
-        # Ensure all joints exist in the current pose
-        if not (part1.exists and part2.exists and part3.exists):
-            continue
-
-        # Compute vectors
-        vec1 = np.array([part1.x - part2.x, part1.y - part2.y])
-        vec2 = np.array([part3.x - part2.x, part3.y - part2.y])
-
-        # Normalize vectors
-        vec1_norm = vec1 / np.linalg.norm(vec1)
-        vec2_norm = vec2 / np.linalg.norm(vec2)
-
-        # Compute angle between vectors using dot product
-        dot_product = np.dot(vec1_norm, vec2_norm)
-        angle = np.degrees(np.arccos(np.clip(dot_product, -1.0, 1.0)))
-
-        angles.append(angle)
-
-    return angles
 
 def knn_evaluation(pose_seq, exercise_type, training_data, k=3):
     """
@@ -145,18 +124,13 @@ def knn_evaluation(pose_seq, exercise_type, training_data, k=3):
 
     Args:
         pose_seq (PoseSequence): The pose sequence to evaluate.
+        exercise_type (str): Type of exercise (e.g., 'pushup', 'squat').
         training_data (dict): Dictionary containing "correct" and "incorrect" training sequences.
         k (int): Number of nearest neighbors to consider.
 
     Returns:
-        (bool, list): A tuple where the first element indicates correctness,
-                      and the second element contains feedback.
+        bool: Whether the exercise was performed correctly.
     """
-
-    if exercise_type not in training_data:
-        feedback = "No training data available for exercise: {exercise_type}"
-        return False, feedback
-
     # Flatten the input pose sequence into a 2D array (frames x features)
     input_sequence = np.array([[part.x, part.y] for pose in pose_seq.poses for _, part in pose if part.exists])
 
@@ -182,12 +156,9 @@ def knn_evaluation(pose_seq, exercise_type, training_data, k=3):
     predicted_label = max(label_counts, key=label_counts.get)
 
     if predicted_label == "incorrect":
-        feedback = "Incorrect form detected."
-        return False, feedback
-
-    feedback = "Correct form detected."
-    return True, feedback
-
+        return False
+    else: 
+        return True
 
 def load_exercise_rules(exercise_type, base_dir="data"):
     """
@@ -228,16 +199,78 @@ def validate_exercise_rules(rules):
     """
     required_keys = ["keypoints", "angle_rules"]
 
+    # Check for required keys
     for key in required_keys:
         if key not in rules:
             raise ValueError(f"Missing required key '{key}' in rules.")
 
+    # Validate the 'keypoints' list
     if not isinstance(rules["keypoints"], list):
         raise ValueError("'keypoints' should be a list.")
 
+    # Validate the 'angle_rules' list
     if not isinstance(rules["angle_rules"], list):
         raise ValueError("'angle_rules' should be a list.")
 
+    # Validate each angle rule
     for angle_rule in rules["angle_rules"]:
-        if not all(k in angle_rule for k in ["joints", "min_angle", "max_angle", "feedback"]):
-            raise ValueError("Each angle rule must contain 'joints', 'min_angle', 'max_angle', and 'feedback'.")
+        if not all(k in angle_rule for k in ["joints", "min_angle", "max_angle", "feedback", "sides"]):
+            raise ValueError("Each angle rule must contain 'joints', 'min_angle', 'max_angle', 'feedback', and 'sides'.")
+
+        if not isinstance(angle_rule["joints"], list):
+            raise ValueError("'joints' in each angle rule should be a list.")
+        if not isinstance(angle_rule["sides"], dict):
+            raise ValueError("'sides' in each angle rule should be a dictionary.")
+
+        # Validate 'sides' structure
+        for side in ["left", "right"]:
+            if side in angle_rule["sides"]:
+                if not isinstance(angle_rule["sides"][side], list):
+                    raise ValueError(f"'{side}' in 'sides' should be a list.")
+                if len(angle_rule["sides"][side]) != len(angle_rule["joints"]):
+                    raise ValueError(f"The number of joints in '{side}' should match the number of joints.")
+
+        # Validate angles
+        if not isinstance(angle_rule["min_angle"], (int, float)) or not isinstance(angle_rule["max_angle"], (int, float)):
+            raise ValueError("Both 'min_angle' and 'max_angle' should be numbers.")
+        if angle_rule["min_angle"] >= angle_rule["max_angle"]:
+            raise ValueError("'min_angle' should be smaller than 'max_angle'.")
+
+        # Validate feedback
+        if not isinstance(angle_rule["feedback"], str):
+            raise ValueError("'feedback' should be a string.")
+
+    print("Exercise rules validated successfully.")
+
+def load_training_data(exercise_type, base_dir="data"):
+    """
+    Load labeled keypoints data from the .npy files.
+
+    Args:
+        base_dir (str): Path to the folder containing `correct.npy` and `incorrect.npy`.
+        exercise_type (str): Type of exercise (e.g., 'pushup', 'squat').
+
+    Returns:
+        dict: A dictionary containing 'correct' and 'incorrect' PoseSequence lists.
+    """
+    correct_folder = os.path.join(base_dir, exercise_type, "landmarks/correct")
+    incorrect_folder = os.path.join(base_dir, exercise_type, "landmarks/incorrect")
+    
+    if not os.path.exists(correct_folder) or not os.path.exists(incorrect_folder):
+        print(f"Training data not found for exercise '{exercise_type}'.")
+        return
+
+    correct_sequences = []
+    for file in os.listdir(correct_folder):
+        if file.endswith(".npy"):
+            correct_path = os.path.join(correct_folder, file)
+            correct_sequences.append(load_posesequence(correct_path))
+
+    incorrect_sequences = []
+    for file in os.listdir(incorrect_folder):
+        if file.endswith(".npy"):
+            incorrect_path = os.path.join(incorrect_folder, file)
+            incorrect_sequences.append(load_posesequence(incorrect_path))
+
+    dict = {"correct": correct_sequences, "incorrect": incorrect_sequences}
+    return dict
