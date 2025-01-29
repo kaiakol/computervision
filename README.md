@@ -4,11 +4,11 @@ The purpose of this application is to be able to use a keypoint detection model 
 
 The model uses both a heuristic evaluation method and a machine learning model to give feedback on whether an exercise was performed with correct form or not, and give feedback on how the user can improve their form.
 
-Process videos:
-python main.py --mode batch_process --input_folder videos --output_folder poses_compressed
+### Install required packages:
+`pip install mediapipe opencv-python numpy`
 
-Evaluate a video:
-python main.py --mode evaluate --video videos/pushup.mp4 --exercise pushup
+### Running the application:
+`python main.py --video [video_path] --exercise [exercise_type]`
 
-Evaluate preprocessed keypoints:
-python main.py --mode evaluate --video videos/pushup.mp4 --exercise pushup
+Example:
+`python main.py --video data/videos/pushup_correct_001.mp4 --exercise pushup`
