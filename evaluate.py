@@ -17,18 +17,20 @@ def evaluate_pose(pose_seq, exercise_type, training_data):
         training_data (dict): Dictionary containing "correct" and "incorrect" training sequences.
     """
     # Geometric evaluation
+    print("Performing geometric evaluation...")
     geometric_correct, geometric_feedback = geometric_evaluation(pose_seq, exercise_type)
     if geometric_correct:
-        print("Geometric evaluation passed")
+        print("Geometric evaluation: Correct form")
     else: 
-        print(f"Geometric evaluation failed: {geometric_feedback}")
+        print(f"Geometric evaluation: Incorrect form. {geometric_feedback}")
 
     # Machine learning evaluation
+    print("Performing KNN evaluation...")
     knn_correct =  knn_evaluation(pose_seq, exercise_type, training_data, k=3)
     if knn_correct:
-        print("KNN evaluation passed")
+        print("KNN evaluation: Correct form")
     else:
-        print(f"KNN evaluation failed")
+        print(f"KNN evaluation: Incorrect form")
     
 def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     """
@@ -45,7 +47,7 @@ def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     """
     try:
         rules = load_exercise_rules(exercise_type, base_dir)
-        validate_exercise_rules(rules)
+        #validate_exercise_rules(rules)
     except (FileNotFoundError, ValueError) as e:
         return False, [str(e)]
 
@@ -57,10 +59,16 @@ def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     # Compute joint angle statistics for all relevant joints
     for angle_rule in rules["angle_rules"]:
         # Use side-specific joint names based on perspective
-        joints = angle_rule["sides"][perspective] if perspective in ["left", "right"] else angle_rule["joints"]
+        joints = angle_rule["sides"][perspective] if perspective in ["left", "right"] else angle_rule["sides"]["front"]
 
-        if joints:
+        if len(joints) == 3:
             pose_seq.compute_joint_angle_statistics(joints)
+            print(pose_seq.min_angles)
+            print(pose_seq.max_angles)
+
+        #else:
+        #    print(f"Computing motion range for {joints}")
+        #    pose_seq.compute_motion_ranges(joints)
 
     # Evaluate the exercise using the provided rules
     return evaluate_exercise(pose_seq, rules, perspective)
@@ -86,35 +94,63 @@ def evaluate_exercise(pose_seq, rules, perspective):
         joints_right = angle_rule["sides"]["right"]
         min_angle = angle_rule.get("min_angle")
         max_angle = angle_rule.get("max_angle")
+        min_motion = angle_rule.get("min_motion")
+        max_motion = angle_rule.get("max_motion")
+        max_motion_front = angle_rule.get("max_motion_front")
         feedback_msg = angle_rule["feedback"]
+        feedback_msg_motion = angle_rule["feedback_motion"]
 
         # Evaluate based on perspective
         if perspective in ["left", "right"]:
             joints = angle_rule["sides"][perspective]
             min_joint_angle = pose_seq.min_angles.get(tuple(joints))
             max_joint_angle = pose_seq.max_angles.get(tuple(joints))
+            motion_range = pose_seq.motion_ranges.get(joints[0])
 
-            if min_angle is not None and min_joint_angle is not None and min_joint_angle < min_angle:
+            print(f"Min joint angle: {min_joint_angle:.2f}°" if min_joint_angle is not None else "None")
+            print(f"Max joint angle: {max_joint_angle:.2f}°" if max_joint_angle is not None else "None")
+            print(f"Motion range: {motion_range:.2f}" if motion_range is not None else "Motion range = None")
+
+            # Check min/max angles
+            if min_angle is not None and min_joint_angle is not None and min_joint_angle > min_angle:
                 correct = False
                 feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected: ≥{min_angle}°)")
 
-            if max_angle is not None and max_joint_angle is not None and max_joint_angle > max_angle:
+            if max_angle is not None and max_joint_angle is not None and max_joint_angle < max_angle:
                 correct = False
                 feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected: ≤{max_angle}°)")
+
+            # Check motion constraints
+            if min_motion is not None and motion_range is not None and motion_range < min_motion:
+                correct = False
+                feedback.append(f"{feedback_msg} (Motion range: {motion_range:.2f}, Expected: ≥{min_motion})")
+
+            if max_motion is not None and motion_range is not None and motion_range > max_motion:
+                correct = False
+                feedback.append(f"{feedback_msg} (Motion range: {motion_range:.2f}, Expected: ≤{max_motion})")
 
         elif perspective == "front":
             # Evaluate both left and right sides
             for joints in [joints_left, joints_right]:
                 min_joint_angle = pose_seq.min_angles.get(tuple(joints))
                 max_joint_angle = pose_seq.max_angles.get(tuple(joints))
+                motion_range = pose_seq.motion_ranges.get(joints[0])  # Motion data
 
-                if min_angle is not None and min_joint_angle is not None and min_joint_angle < min_angle:
+                if min_angle is not None and min_joint_angle is not None and min_joint_angle > min_angle:
                     correct = False
                     feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected: ≥{min_angle}°)")
 
-                if max_angle is not None and max_joint_angle is not None and max_joint_angle > max_angle:
+                if max_angle is not None and max_joint_angle is not None and max_joint_angle < max_angle:
                     correct = False
                     feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected: ≤{max_angle}°)")
+
+                if min_motion is not None and motion_range is not None and motion_range < min_motion:
+                    correct = False
+                    feedback.append(f"{feedback_msg_motion} (Motion range: {motion_range:.2f}, Expected: ≥{min_motion})")
+
+                if max_motion is not None and motion_range is not None and motion_range > max_motion_front:
+                    correct = False
+                    feedback.append(f"{feedback_msg_motion} (Motion range: {motion_range:.2f}, Expected: ≤{max_motion_front})")
 
     return correct, feedback
 

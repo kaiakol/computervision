@@ -3,10 +3,7 @@ import mediapipe as mp
 
 class PoseSequence:
     def __init__(self, sequence):
-        self.poses = []
-        for parts in sequence:
-            self.poses.append(Pose(parts))
-
+        self.poses = [Pose(parts) for parts in sequence]
         """# Normalize poses based on the average torso length
         torso_lengths = []
         for pose in self.poses:
@@ -14,16 +11,58 @@ class PoseSequence:
             midpoint_hip = (pose.lhip + pose.rhip) / 2
             mean_torso = Part.dist(midpoint_shoulder, midpoint_hip)
             torso_lengths.append(mean_torso)
-        
+
         mean_torso = np.mean(torso_lengths) if torso_lengths else 1.0
 
         for pose in self.poses:
             for attr, part in pose:
                 setattr(pose, attr, part / mean_torso) """
-        
         self.perspective = self.detect_perspective()
         self.min_angles = {}
         self.max_angles = {}
+        self.motion_ranges = {}
+        self.compute_motion_ranges()
+
+    def compute_motion_ranges(self):
+        """
+        Compute and normalize the total motion range for each joint over the sequence.
+        The motion range is calculated as the cumulative Euclidean distance traveled by each joint.
+        Normalized values range from 0 to 1.
+
+        Updates:
+            self.motion_ranges[joint_name]: The normalized total distance each joint traveled in the sequence.
+        """
+        joint_positions = {joint: [] for joint in Pose.PART_NAMES}
+        raw_motion_ranges = {}
+
+        # Collect joint positions throughout the sequence
+        for pose in self.poses:
+            for joint in Pose.PART_NAMES:
+                part = getattr(pose, joint)
+                if part.exists:
+                    joint_positions[joint].append((part.x, part.y))
+
+        # Compute total motion range for each joint
+        for joint, positions in joint_positions.items():
+            if len(positions) > 1:  # Need at least two positions to compute motion
+                total_distance = sum(
+                    np.sqrt((positions[i+1][0] - positions[i][0])**2 + (positions[i+1][1] - positions[i][1])**2)
+                    for i in range(len(positions) - 1)
+                )
+                raw_motion_ranges[joint] = total_distance
+            else:
+                raw_motion_ranges[joint] = 0  # No movement detected or insufficient data
+
+        # Normalize the motion ranges to be between 0 and 1
+        max_motion_range = max(raw_motion_ranges.values(), default=1)  # Avoid division by zero
+
+        self.motion_ranges = {
+            joint: (raw_motion_ranges[joint] / max_motion_range) if max_motion_range > 0 else 0
+            for joint in Pose.PART_NAMES
+        }
+
+        print(self.motion_ranges)
+
 
     def detect_perspective(self):
         """
@@ -61,20 +100,13 @@ class PoseSequence:
     def compute_joint_angle_statistics(self, joint_names):
         """
         Compute the minimum and maximum joint angles for a sequence of poses.
-
-        Args:
-            joint_names (list): A list of three joint names defining the angle.
-
-        Updates:
-            self.min_angles[joint_names]: Minimum angle in the sequence.
-            self.max_angles[joint_names]: Maximum angle in the sequence.
         """
         angles = []
         for pose in self.poses:
             angle = pose.compute_joint_angle(joint_names)
             if angle is not None:
                 angles.append(angle)
-
+        
         if angles:
             self.min_angles[tuple(joint_names)] = np.min(angles)
             self.max_angles[tuple(joint_names)] = np.max(angles)

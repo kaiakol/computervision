@@ -1,0 +1,56 @@
+{
+    "keypoints": [
+        "shoulder",
+        "elbow",
+        "wrist",
+        "hip",
+        "knee",
+        "ankle"
+    ],
+    "angle_rules": [
+        {
+            "joints": [
+                "shoulder",
+                "elbow",
+                "wrist"
+            ],
+            "min_angle": 45,
+            "max_angle": 180,
+            "feedback": "Elbow angle out of range. Keep your arms straight but not locked.",
+            "sides": {
+                "left": [
+                    "lshoulder",
+                    "lelbow",
+                    "lwrist"
+                ],
+                "right": [
+                    "rshoulder",
+                    "relbow",
+                    "rwrist"
+                ]
+            }
+        },
+        {
+            "joints": [
+                "hip",
+                "knee",
+                "ankle"
+            ],
+            "min_angle": 100,
+            "max_angle": 180,
+            "feedback": "Maintain proper leg posture during the exercise.",
+            "sides": {
+                "left": [
+                    "lhip",
+                    "lknee",
+                    "lankle"
+                ],
+                "right": [
+                    "rhip",
+                    "rknee",
+                    "rankle"
+                ]
+            }
+        }
+    ]
+}
