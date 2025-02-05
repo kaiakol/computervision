@@ -14,9 +14,12 @@
                 "elbow",
                 "wrist"
             ],
-            "min_angle": 45,
-            "max_angle": 180,
-            "feedback": "Elbow angle out of range. Keep your arms straight but not locked.",
+            "min_angle_lower": 5,
+            "min_angle_upper": 45,
+            "max_angle_lower": 170,
+            "max_angle_upper": 180,
+            "feedback": "Elbow angle too large. Go further down.",
+            "feedback_motion": "",
             "sides": {
                 "left": [
                     "lshoulder",
@@ -36,9 +39,10 @@
                 "knee",
                 "ankle"
             ],
-            "min_angle": 100,
-            "max_angle": 180,
-            "feedback": "Maintain proper leg posture during the exercise.",
+            "min_angle_lower": 160,
+            "min_angle_upper": 180,
+            "feedback": "Keep your knees straight during the exercise.",
+            "feedback_motion": "",
             "sides": {
                 "left": [
                     "lhip",
@@ -48,6 +52,29 @@
                 "right": [
                     "rhip",
                     "rknee",
+                    "rankle"
+                ]
+            }
+        },
+        {
+            "joints": [
+                "shoulder",
+                "hip",
+                "ankle"
+            ],
+            "min_angle_lower": 160,
+            "min_angle_upper": 180,
+            "feedback": "Keep your back straight during the exercise.",
+            "feedback_motion": "",
+            "sides": {
+                "left": [
+                    "lshoulder",
+                    "lhip",
+                    "lankle"
+                ],
+                "right": [
+                    "rshoulder",
+                    "rhip",
                     "rankle"
                 ]
             }
