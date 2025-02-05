@@ -1,0 +1,33 @@
+{
+  "keypoints": ["shoulder", "elbow", "wrist", "hip"],
+  "angle_rules": [
+    {
+      "joints": ["shoulder", "elbow", "wrist"],
+      "min_angle_lower": 0,
+      "min_angle_upper": 30,
+      "max_angle_lower": 140,
+      "max_angle_upper": 180,
+      "feedback": "Too small range of motion in the elbows. Go further up and down.",
+      "feedback_motion": "Too small range of motion in the elbows. Go further up and down.",
+      "sides": {
+        "left": ["lshoulder", "lelbow", "lwrist"],
+        "right": ["rshoulder", "relbow", "rwrist"],
+        "front": ["lshoulder", "lelbow", "lwrist"]
+      }
+    },
+    {
+      "joints": ["hip", "shoulder", "elbow"],
+      "min_angle_lower": 0,
+      "min_angle_upper": 20,
+      "max_angle_lower": 140,
+      "max_angle_upper": 180,
+      "feedback": "Too small range of motion in the shoulder. Go further up and down.",
+      "feedback_motion": "Too small range of motion in the shoulder. Go further up and down.",
+      "sides": {
+        "left": ["lhip", "lshoulder", "lelbow"],
+        "right": ["rhip", "rshoulder", "relbow"],
+        "front": ["lhip", "lshoulder", "lelbow"]
+      }
+    }
+  ]
+}
