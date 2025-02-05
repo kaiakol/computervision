@@ -1,0 +1,31 @@
+{
+  "keypoints": ["shoulder", "elbow", "hip", "knee", "ankle"],
+  "angle_rules": [
+    {
+      "joints": ["shoulder"],
+      "min_motion": 0.2,
+      "min_motion_front": 0.2,
+      "feedback": "You are not rotating your upper body enough. Try to rotate more.",
+      "feedback_motion": "You are not rotating your upper body enough. Try to rotate more.",
+      "sides": {
+        "left": ["lshoulder"],
+        "right": ["rshoulder"],
+        "front": ["lshoulder", "rshoulder"]
+      }
+    },
+    {
+      "joints": ["knee", "hip", "shoulder"],
+      "min_angle_lower": 70,
+      "min_angle_upper": 140,
+      "max_angle_lower": 70,
+      "max_angle_upper": 140,
+      "feedback": "You are sitting too far up or laying too much down. Try to keep your body straight, with an angle in the hip.",
+      "feedback_motion": "You are sitting too far up or laying too much down. Try to keep your body straight, with an angle in the hip.",
+      "sides": {
+        "left": ["lknee", "lhip", "lshoulder"],
+        "right": ["rknee", "rhip", "rshoulder"],
+        "front": ["lknee", "lhip", "lshoulder"]
+      }
+    }
+  ]
+}

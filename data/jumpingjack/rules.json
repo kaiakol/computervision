@@ -1,0 +1,30 @@
+{
+  "keypoints": ["shoulder", "elbow", "hip", "knee", "ankle"],
+  "angle_rules": [
+    {
+      "joints": ["hip", "shoulder", "elbow"],
+      "min_angle_lower": 0,
+      "min_angle_upper": 30,
+      "max_angle_lower": 150,
+      "max_angle_upper": 180,
+      "feedback": "You are not moving the arms enough. The hands should start by the body and end over the head.",
+      "feedback_motion": "You are not moving the arms enough. The hands should start by the body and end over the head.",
+      "sides": {
+        "left": ["lhip", "lshoulder", "lelbow"],
+        "right": ["rhip", "rshoulder", "relbow"],
+        "front": ["rhip", "rshoulder", "relbow"]
+      }
+    },
+    {
+      "joints": ["ankle"],
+      "min_motion": 0.15,
+      "feedback": "You are not moving the legs enough. The legs should start by the body and end wide apart.",
+      "feedback_motion": "You are not moving the legs enough. The legs should start by the body and end wide apart.",
+      "sides": {
+        "left": ["lankle"],
+        "right": ["rankle"],
+        "front": ["lankle", "rankle"]
+      }
+    }
+  ]
+}
