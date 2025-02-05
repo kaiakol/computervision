@@ -61,9 +61,6 @@ class PoseSequence:
             for joint in Pose.PART_NAMES
         }
 
-        print(self.motion_ranges)
-
-
     def detect_perspective(self):
         """
         Detect the recording perspective: left, right, or front.

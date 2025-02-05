@@ -84,11 +84,6 @@ def process_video_dataset(input_folder, output_folder):
         print(f"Processing: {video_path}")
         parse_video(video_path, output_folder)
 
-# Define the Mediapipe indices corresponding to the 17 keypoints you are using
-MEDIAPIPE_LANDMARKS = [
-    0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-]
-
 def load_posesequence(file_path):
     """
     Load a PoseSequence from a .npy file containing a (num_frames, 33, 3) array.
@@ -101,11 +96,11 @@ def load_posesequence(file_path):
     """
     data = np.load(file_path)
     num_frames = data.shape[0]
-
+    
     sequence = []
     for frame in range(num_frames):
-        frame_data = data[frame]  # Get landmarks for this frame
-        selected_parts = [frame_data[i].tolist() for i in MEDIAPIPE_LANDMARKS]
+        frame_data = data[frame]
+        selected_parts = [frame_data[i].tolist() for i in range(len(frame_data))]
         sequence.append(selected_parts)
 
     return PoseSequence(sequence)
