@@ -10,7 +10,7 @@ The model uses both a heuristic evaluation method and a machine learning model t
 
 ### Running the application:
 
-`python main.py --video [video_path] --exercise [exercise_type]`
+`python main.py --video [video_path] --exercise [exercise_type] 2>/dev/null`
 
 Example:
-`python main.py --video data/videos/pushup_correct_001.mp4 --exercise pushup`
+`python main.py --video data/videos/pushup_correct_001.mp4 --exercise pushup 2>/dev/null`
