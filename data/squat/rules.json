@@ -16,7 +16,7 @@
       "joints": ["knee"],
       "max_motion": 0.5,
       "max_motion_front": 0.25,
-      "feedback": "Your knees are moving too far forward. Keep your knees behind your toes throughout the squat.",
+      "feedback": "Your knees are moving too far forward. Try to keep your knees behind your toes throughout the squat.",
       "feedback_motion": "Your knees are moving too far to the sides. Keep your knees in line with your toes throughout the squat.",
       "sides": {
         "left": ["lknee"],

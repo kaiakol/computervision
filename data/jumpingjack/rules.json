@@ -18,8 +18,8 @@
     {
       "joints": ["ankle"],
       "min_motion": 0.15,
-      "feedback": "You are not moving the legs enough. The legs should start by the body and end wide apart.",
-      "feedback_motion": "You are not moving the legs enough. The legs should start by the body and end wide apart.",
+      "feedback": "You are not moving the legs enough. The legs should start under the body and end wide apart with a jump.",
+      "feedback_motion": "You are not moving the legs enough. The legs should start under the body and end wide apart with a jump.",
       "sides": {
         "left": ["lankle"],
         "right": ["rankle"],

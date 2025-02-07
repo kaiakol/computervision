@@ -109,25 +109,25 @@ def evaluate_exercise(pose_seq, rules, perspective):
             max_joint_angle = pose_seq.max_angles.get(tuple(joints))
             motion_range = pose_seq.motion_ranges.get(joints[0])
 
-            print(f"Min joint angle: {min_joint_angle:.2f}°" if min_joint_angle is not None else "None")
-            print(f"Max joint angle: {max_joint_angle:.2f}°" if max_joint_angle is not None else "None")
-            print(f"Motion range: {motion_range:.2f}" if motion_range is not None else "Motion range = None")
+            # print(f"Min joint angle: {min_joint_angle:.2f}°" if min_joint_angle is not None else "None")
+            # print(f"Max joint angle: {max_joint_angle:.2f}°" if max_joint_angle is not None else "None")
+            # print(f"Motion range: {motion_range:.2f}" if motion_range is not None else "Motion range = None")
 
             if min_angle_lower is not None and min_angle_upper is not None and min_joint_angle is not None and (min_angle_upper < min_joint_angle or min_joint_angle < min_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected between: [{min_angle_lower}°, {min_angle_upper}°])")
+                feedback.append(f"{feedback_msg} (Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: [{min_angle_lower}° and {min_angle_upper}°])")
 
             if max_angle_lower is not None and max_angle_upper is not None and max_joint_angle is not None and (max_angle_upper < max_joint_angle or max_joint_angle < max_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected between: [{max_angle_lower}°, {max_angle_upper}°])")
+                feedback.append(f"{feedback_msg} (Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: [{max_angle_lower}° and {max_angle_upper}°])")
 
             if min_motion is not None and motion_range is not None and motion_range < min_motion:
                 correct = False
-                feedback.append(f"{feedback_msg} (Motion range: {motion_range:.2f}, Expected: ≥{min_motion})")
+                feedback.append(f"{feedback_msg} (Total movement: {motion_range:.2f}. Movement should be ≥{min_motion})")
 
             if max_motion is not None and motion_range is not None and motion_range > max_motion:
                 correct = False
-                feedback.append(f"{feedback_msg} (Motion range: {motion_range:.2f}, Expected: ≤{max_motion})")
+                feedback.append(f"{feedback_msg} (Total movement: {motion_range:.2f}. Movement should be ≤{max_motion})")
 
         elif perspective == "front":
             # Evaluate both left and right sides
@@ -136,21 +136,21 @@ def evaluate_exercise(pose_seq, rules, perspective):
                 max_joint_angle = pose_seq.max_angles.get(tuple(joints))
                 motion_range = pose_seq.motion_ranges.get(joints[0])
 
-                if min_angle_lower is not None and min_angle_upper is not None and min_joint_angle is not None and (min_angle_upper < min_joint_angle or min_joint_angle < min_angle_lower):
-                    correct = False
-                    feedback.append(f"{feedback_msg} (Min angle: {min_joint_angle:.2f}°, Expected between: [{min_angle_lower}°, {min_angle_upper}°])")
+            if min_angle_lower is not None and min_angle_upper is not None and min_joint_angle is not None and (min_angle_upper < min_joint_angle or min_joint_angle < min_angle_lower):
+                correct = False
+                feedback.append(f"{feedback_msg} (Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: [{min_angle_lower}° and {min_angle_upper}°])")
 
-                if max_angle_lower is not None and max_angle_upper is not None and max_joint_angle is not None and (max_angle_upper < max_joint_angle or max_joint_angle < max_angle_lower):
-                    correct = False
-                    feedback.append(f"{feedback_msg} (Max angle: {max_joint_angle:.2f}°, Expected between: [{max_angle_lower}°, {max_angle_upper}°])")
+            if max_angle_lower is not None and max_angle_upper is not None and max_joint_angle is not None and (max_angle_upper < max_joint_angle or max_joint_angle < max_angle_lower):
+                correct = False
+                feedback.append(f"{feedback_msg} (Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: [{max_angle_lower}° and {max_angle_upper}°])")
 
-                if min_motion is not None and motion_range is not None and motion_range < min_motion:
-                    correct = False
-                    feedback.append(f"{feedback_msg_motion} (Motion range: {motion_range:.2f}, Expected: ≥{min_motion})")
+            if min_motion is not None and motion_range is not None and motion_range < min_motion:
+                correct = False
+                feedback.append(f"{feedback_msg} (Total movement: {motion_range:.2f}. Movement should be ≥{min_motion})")
 
-                if max_motion is not None and motion_range is not None and motion_range > max_motion_front:
-                    correct = False
-                    feedback.append(f"{feedback_msg_motion} (Motion range: {motion_range:.2f}, Expected: ≤{max_motion_front})")
+            if max_motion is not None and motion_range is not None and motion_range > max_motion:
+                correct = False
+                feedback.append(f"{feedback_msg} (Total movement: {motion_range:.2f}. Movement should be ≤{max_motion})")
 
     return correct, feedback
 
