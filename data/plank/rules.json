@@ -1,0 +1,27 @@
+{
+  "keypoints": ["shoulder", "hip", "knee", "ankle"],
+  "angle_rules": [
+    {
+      "joints": ["hip", "knee", "ankle"],
+      "min_angle_lower": 140,
+      "min_angle_upper": 180,
+      "feedback": "Keep your knees straight during the exercise.",
+      "feedback_motion": "",
+      "sides": {
+        "left": ["lhip", "lknee", "lankle"],
+        "right": ["rhip", "rknee", "rankle"]
+      }
+    },
+    {
+      "joints": ["shoulder", "hip", "ankle"],
+      "min_angle_lower": 140,
+      "min_angle_upper": 180,
+      "feedback": "Keep your back straight during the exercise.",
+      "feedback_motion": "",
+      "sides": {
+        "left": ["lshoulder", "lhip", "lankle"],
+        "right": ["rshoulder", "rhip", "rankle"]
+      }
+    }
+  ]
+}
