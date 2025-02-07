@@ -1,5 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
-# Ignore the data folder
+# Ignore data files and model
 data/
+all_videos/
+workout_data/
+final_swin3d_fitness.pth
