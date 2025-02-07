@@ -1,4 +1,5 @@
 import argparse
+import os
 from parse import parse_video
 from evaluate import evaluate_pose
 from evaluate import load_training_data
@@ -13,6 +14,10 @@ def main():
 
     if not args.video:
         print("No video file specified.")
+        return
+    
+    if not os.path.isfile(args.video):
+        print("Video file does not exist.")
         return
 
     if not args.exercise:
