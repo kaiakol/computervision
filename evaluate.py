@@ -17,20 +17,22 @@ def evaluate_pose(pose_seq, exercise_type, training_data):
         training_data (dict): Dictionary containing "correct" and "incorrect" training sequences.
     """
     # Geometric evaluation
-    print("Performing geometric evaluation...")
+    #print("Performing geometric evaluation...")
     geometric_correct, geometric_feedback = geometric_evaluation(pose_seq, exercise_type)
     if geometric_correct:
-        print("Geometric evaluation: Correct form")
+        print("Geometric evaluation: Correct form.")
     else: 
-        print(f"Geometric evaluation: Incorrect form. {geometric_feedback}")
+        print("Geometric evaluation: Incorrect form.")
+        for feedback in geometric_feedback:
+            print(f"{feedback}")
 
     # Machine learning evaluation
-    print("Performing KNN evaluation...")
+    #print("Performing KNN evaluation...")
     knn_correct =  knn_evaluation(pose_seq, exercise_type, training_data, k=3)
     if knn_correct:
-        print("KNN evaluation: Correct form")
+        print("KNN evaluation: Correct form.")
     else:
-        print(f"KNN evaluation: Incorrect form")
+        print(f"KNN evaluation: Incorrect form.")
     
 def geometric_evaluation(pose_seq, exercise_type, base_dir="data"):
     """
@@ -115,19 +117,19 @@ def evaluate_exercise(pose_seq, rules, perspective):
 
             if min_angle_lower is not None and min_angle_upper is not None and min_joint_angle is not None and (min_angle_upper < min_joint_angle or min_joint_angle < min_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: {min_angle_lower}° and {min_angle_upper}°")
+                feedback.append(f"{feedback_msg}\n Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: {min_angle_lower}° and {min_angle_upper}°")
 
             if max_angle_lower is not None and max_angle_upper is not None and max_joint_angle is not None and (max_angle_upper < max_joint_angle or max_joint_angle < max_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: {max_angle_lower}° and {max_angle_upper}°")
+                feedback.append(f"{feedback_msg}\n Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: {max_angle_lower}° and {max_angle_upper}°")
 
             if min_motion is not None and motion_range is not None and motion_range < min_motion:
                 correct = False
-                feedback.append(f"{feedback_msg_motion} Total movement: {motion_range:.2f}. Movement should be ≥{min_motion}")
+                feedback.append(f"{feedback_msg_motion}\n Total movement: {motion_range:.2f}. Movement should be ≥{min_motion}")
 
             if max_motion is not None and motion_range is not None and motion_range > max_motion:
                 correct = False
-                feedback.append(f"{feedback_msg_motion} Total movement: {motion_range:.2f}. Movement should be ≤{max_motion}")
+                feedback.append(f"{feedback_msg_motion}\n Total movement: {motion_range:.2f}. Movement should be ≤{max_motion}")
 
         elif perspective == "front":
             # Evaluate both left and right sides
@@ -138,19 +140,19 @@ def evaluate_exercise(pose_seq, rules, perspective):
 
             if min_angle_lower is not None and min_angle_upper is not None and min_joint_angle is not None and (min_angle_upper < min_joint_angle or min_joint_angle < min_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: {min_angle_lower}° and {min_angle_upper}°")
+                feedback.append(f"{feedback_msg}\n Minimum angle: {min_joint_angle:.2f}°. Minimum angle should be between: {min_angle_lower}° and {min_angle_upper}°")
 
             if max_angle_lower is not None and max_angle_upper is not None and max_joint_angle is not None and (max_angle_upper < max_joint_angle or max_joint_angle < max_angle_lower):
                 correct = False
-                feedback.append(f"{feedback_msg} Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: {max_angle_lower}° and {max_angle_upper}°")
+                feedback.append(f"{feedback_msg}\n Maximum angle: {max_joint_angle:.2f}°. Maximum angle should be between: {max_angle_lower}° and {max_angle_upper}°")
 
             if min_motion is not None and motion_range is not None and motion_range < min_motion:
                 correct = False
-                feedback.append(f"{feedback_msg_motion} Total movement: {motion_range:.2f}. Movement should be ≥ {min_motion}")
+                feedback.append(f"{feedback_msg_motion}\n Total movement: {motion_range:.2f}. Movement should be ≥ {min_motion}")
 
             if max_motion is not None and motion_range is not None and motion_range > max_motion:
                 correct = False
-                feedback.append(f"{feedback_msg_motion} Total movement: {motion_range:.2f}. Movement should be ≤ {max_motion}")
+                feedback.append(f"{feedback_msg_motion}\n Total movement: {motion_range:.2f}. Movement should be ≤ {max_motion}")
 
     return correct, feedback
 
@@ -293,7 +295,7 @@ def load_training_data(exercise_type, base_dir="data"):
     incorrect_folder = os.path.join(base_dir, exercise_type, "landmarks/incorrect")
     
     if not os.path.exists(correct_folder) or not os.path.exists(incorrect_folder):
-        print(f"Training data not found for exercise '{exercise_type}'.")
+        print(f"Training data not available for {exercise_type}. No KNN evaluation will be performed.")
         return
 
     correct_sequences = []

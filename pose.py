@@ -4,19 +4,6 @@ import mediapipe as mp
 class PoseSequence:
     def __init__(self, sequence):
         self.poses = [Pose(parts) for parts in sequence]
-        """# Normalize poses based on the average torso length
-        torso_lengths = []
-        for pose in self.poses:
-            midpoint_shoulder = (pose.lshoulder + pose.rshoulder) / 2
-            midpoint_hip = (pose.lhip + pose.rhip) / 2
-            mean_torso = Part.dist(midpoint_shoulder, midpoint_hip)
-            torso_lengths.append(mean_torso)
-
-        mean_torso = np.mean(torso_lengths) if torso_lengths else 1.0
-
-        for pose in self.poses:
-            for attr, part in pose:
-                setattr(pose, attr, part / mean_torso) """
         self.perspective = self.detect_perspective()
         self.min_angles = {}
         self.max_angles = {}
@@ -127,11 +114,7 @@ class Pose:
         "lhip", "rhip", "lknee", "rknee", "lankle", "rankle", "lheel", "rheel",
         "lfootindex", "rfootindex"
     ]
-    """
-    def __init__(self, parts):
-        for name, vals in zip(Pose.PART_NAMES, parts):
-            setattr(self, name, Part(vals))
-    """
+    
     def __init__(self, parts):
         for name, vals in zip(Pose.PART_NAMES, parts):
             if len(vals) != 3:

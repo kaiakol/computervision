@@ -11,7 +11,7 @@ def main():
     args = parser.parse_args()
 
     if args.video:
-        print("Processing video...")
+        #print("Processing video...")
         pose_seq = parse_video(args.video, "data/landmarks")
         training_data = load_training_data(args.exercise)
         evaluate_pose(pose_seq, args.exercise, training_data)
