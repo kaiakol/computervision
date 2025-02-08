@@ -1,39 +1,80 @@
 {
-  "keypoints": ["shoulder", "hip", "knee", "ankle", "heel", "footindex"],
+  "keypoints": [
+    "shoulder",
+    "hip",
+    "knee",
+    "ankle",
+    "heel",
+    "footindex"
+  ],
   "angle_rules": [
     {
-      "joints": ["hip", "knee", "ankle"],
+      "joints": [
+        "hip",
+        "knee",
+        "ankle"
+      ],
       "min_angle": 120,
       "feedback": "You are not squatting deep enough. Aim to lower your hips until your thighs are at least parallel to the ground.",
       "feedback_motion": "",
       "sides": {
-        "left": ["lhip", "lknee", "lankle"],
-        "right": ["rhip", "rknee", "rankle"],
-        "front": ["lhip", "lknee", "lankle"]
+        "left": [
+          "lhip",
+          "lknee",
+          "lankle"
+        ],
+        "right": [
+          "rhip",
+          "rknee",
+          "rankle"
+        ],
+        "front": [
+          "lhip",
+          "lknee",
+          "lankle"
+        ]
       }
     },
     {
-      "joints": ["knee"],
+      "joints": [
+        "knee"
+      ],
       "max_motion": 0.5,
       "max_motion_front": 0.25,
       "feedback": "Your knees are moving too far forward. Try to keep your knees behind your toes throughout the squat.",
       "feedback_motion": "Your knees are moving too far to the sides. Keep your knees in line with your toes throughout the squat.",
       "sides": {
-        "left": ["lknee"],
-        "right": ["rknee"],
-        "front": ["lknee", "rknee"]
+        "left": [
+          "lknee"
+        ],
+        "right": [
+          "rknee"
+        ],
+        "front": [
+          "lknee",
+          "rknee"
+        ]
       }
     },
     {
-      "joints": ["heel"],
-      "max_motion": 0.15,
-      "max_motion_front": 0.15,
+      "joints": [
+        "heel"
+      ],
+      "max_motion": 0.2,
+      "max_motion_front": 0.2,
       "feedback": "",
       "feedback_motion": "You are lifting your heel. Keep your feet flat on the ground throughout the squat.",
       "sides": {
-        "left": ["lheel"],
-        "right": ["rheel"],
-        "front": ["lheel", "rheel"]
+        "left": [
+          "lheel"
+        ],
+        "right": [
+          "rheel"
+        ],
+        "front": [
+          "lheel",
+          "rheel"
+        ]
       }
     }
   ]
