@@ -4,7 +4,7 @@
     {
       "joints": ["shoulder", "elbow", "wrist"],
       "min_angle_lower": 5,
-      "min_angle_upper": 45,
+      "min_angle_upper": 60,
       "max_angle_lower": 170,
       "max_angle_upper": 180,
       "feedback": "Elbow angle too large. Go further down.",
@@ -16,7 +16,7 @@
     },
     {
       "joints": ["hip", "knee", "ankle"],
-      "min_angle_lower": 140,
+      "min_angle_lower": 130,
       "min_angle_upper": 180,
       "feedback": "Keep your knees straight during the exercise.",
       "feedback_motion": "",
@@ -27,7 +27,7 @@
     },
     {
       "joints": ["shoulder", "hip", "ankle"],
-      "min_angle_lower": 140,
+      "min_angle_lower": 130,
       "min_angle_upper": 180,
       "feedback": "Keep your back straight during the exercise.",
       "feedback_motion": "",
